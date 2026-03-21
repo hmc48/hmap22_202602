@@ -128,13 +128,29 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
   </div>
   <div id="search-btn" class="circle-btn" onclick="togglePanel('search-panel')">🔍</div>
   <div id="search-panel">
-    <input type="text" id="search-input" placeholder="and検索（例：内科 五反田）" style="width:100%; padding:10px; box-sizing:border-box;">
-    <div id="search-results" style="max-height:200px; overflow-y:auto; margin-top:10px;"></div>
-  </div>
+    <input type="text" id="search-input" placeholder="and検索（例：内科 五反田）"
+           style="width:100%; padding:10px; box-sizing:border-box;">
+
+    <!-- ★追加：ジャンプ検索UI -->
+    <div style="margin-top:10px;">
+      <input type="text" id="jump-input"
+             placeholder="住所 または 緯度,経度"
+             style="width:100%; padding:10px; box-sizing:border-box; margin-bottom:5px;">
+
+      <div class="btn-container">
+        <button class="menu-sub-btn" onclick="jumpToLocation('osm')">OSM検索</button>
+        <button class="menu-sub-btn" onclick="jumpToLocation('gsi')">国土地理院検索</button>
+      </div>
+    </div>
+
+    <div id="search-results"
+         style="max-height:200px; overflow-y:auto; margin-top:10px;"></div>
+  </div>  
+
   <div id="info-btn" class="circle-btn" onclick="togglePanel('info-panel')">i</div>
   <div id="jump-btn" class="circle-btn"
        style="top:195px; right:15px; background:#ff9800; color:white;"
-       onclick="jumpToLocation()">📍</div>
+       onclick="togglePanel('search-panel')"📍</div>
   <div id="info-panel" onclick="this.style.display='none'">
     <strong>医療・介護施設マップ　　　　★閉じる★</strong><br>
     <span style="color:red;">★</span>病院
@@ -265,13 +281,19 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
 // =====================================================
     let inputMarker = null;
 
-    function jumpToLocation() {
+// =====================================================
+// 📍 住所／緯度経度ジャンプ機能（OSM / 国土地理院対応）
+// =====================================================
+    let inputMarker = null;
 
-        const input = prompt(
-            "住所 施設または 緯度,経度 を入力してください\n例:\n品川区 〇〇区役所\n35.6094, 139.7303"
-        );
+    function jumpToLocation(engine) {
 
-        if (!input) return;
+        const input = document.getElementById("jump-input").value.trim();
+
+        if (!input) {
+            alert("入力してください");
+            return;
+        }
 
         // 既存マーカー削除
         if (inputMarker) {
@@ -279,7 +301,9 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
             inputMarker = null;
         }
 
-        // 緯度経度形式
+        // ============================
+        // 緯度経度
+        // ============================
         if (input.includes(",")) {
 
             const parts = input.split(",");
@@ -297,11 +321,15 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
                 .bindPopup(input)
                 .openPopup();
 
-        } else {
+            return;
+        }
 
-            fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}`
-            )
+        // ============================
+        // OSM検索
+        // ============================
+        if (engine === "osm") {
+
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}`)
             .then(res => res.json())
             .then(data => {
 
@@ -323,7 +351,36 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
                 alert("検索エラーが発生しました");
             });
         }
-    }    
+
+        // ============================
+        // 国土地理院検索
+        // ============================
+        if (engine === "gsi") {
+
+            fetch(`https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(input)}`)
+            .then(res => res.json())
+            .then(data => {
+
+                if (!data || data.length === 0) {
+                    alert("住所が見つかりません");
+                    return;
+                }
+
+                const coords = data[0].geometry.coordinates;
+                const lng = coords[0];
+                const lat = coords[1];
+
+                map.setView([lat, lng], 16);
+
+                inputMarker = L.marker([lat, lng]).addTo(map)
+                    .bindPopup(input)
+                    .openPopup();
+            })
+            .catch(() => {
+                alert("検索エラーが発生しました");
+            });
+        }
+    }
 
     // 4. データ読み込み関数群
     function loadChome(idx) {
