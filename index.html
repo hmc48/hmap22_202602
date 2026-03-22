@@ -304,7 +304,7 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
         } else {
 
         fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&countrycodes=jp&limit=5&accept-language=ja&q=${encodeURIComponent(input)}`
+    `        https://nominatim.openstreetmap.org/search?format=json&countrycodes=jp&limit=5&accept-language=ja&q=${encodeURIComponent(input)}`
         )
         .then(res => res.json())
         .then(data => {
@@ -314,38 +314,62 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
                 return;
             }
 
-            // ▼ 候補一覧UI作成
-            let listHtml = "候補を選択してください：\n\n";
+            // ▼ 候補表示ボックス作成
+            const resultsDiv = document.createElement("div");
+            resultsDiv.style.position = "fixed";
+            resultsDiv.style.top = "50%";
+            resultsDiv.style.left = "50%";
+            resultsDiv.style.transform = "translate(-50%, -50%)";
+            resultsDiv.style.background = "white";
+            resultsDiv.style.padding = "15px";
+            resultsDiv.style.zIndex = "5000";
+            resultsDiv.style.maxHeight = "300px";
+            resultsDiv.style.overflowY = "auto";
+            resultsDiv.style.border = "1px solid #ccc";
 
-            data.forEach((place, index) => {
-                listHtml += `${index + 1}: ${place.display_name}\n\n`;
+            data.forEach(place => {
+
+                const item = document.createElement("div");
+                item.style.padding = "8px";
+                item.style.borderBottom = "1px solid #eee";
+                item.style.cursor = "pointer";
+
+                item.innerText = place.display_name;
+
+                item.onclick = () => {
+
+                    const lat = parseFloat(place.lat);
+                    const lng = parseFloat(place.lon);
+
+                    map.setView([lat, lng], 16);
+
+                    inputMarker = L.marker([lat, lng]).addTo(map)
+                        .bindPopup(place.display_name)
+                        .openPopup();
+
+                    document.body.removeChild(resultsDiv);
+                };
+
+                resultsDiv.appendChild(item);
             });
 
-            const choice = prompt(listHtml);
+            // 閉じるボタン
+            const closeBtn = document.createElement("div");
+            closeBtn.innerText = "閉じる";
+            closeBtn.style.marginTop = "10px";
+            closeBtn.style.textAlign = "center";
+            closeBtn.style.cursor = "pointer";
+            closeBtn.onclick = () => document.body.removeChild(resultsDiv);
 
-            if (!choice) return;
+            resultsDiv.appendChild(closeBtn);
 
-            const idx = parseInt(choice) - 1;
-
-            if (isNaN(idx) || !data[idx]) {
-                alert("選択が不正です");
-                return;
-            }
-
-            const selected = data[idx];
-
-            const lat = parseFloat(selected.lat);
-            const lng = parseFloat(selected.lon);
-
-            map.setView([lat, lng], 16);
-
-            inputMarker = L.marker([lat, lng]).addTo(map)
-                .bindPopup(selected.display_name)
-                .openPopup();
+            document.body.appendChild(resultsDiv);
         })
-            .catch(() => {
-                alert("検索エラーが発生しました");
-            });
+        .catch(() => {
+            alert("検索エラーが発生しました");
+        });
+
+
         }
     }    
 
