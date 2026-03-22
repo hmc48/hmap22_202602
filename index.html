@@ -315,14 +315,10 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
             }
 
             // ▼ 候補一覧UI作成
-            let listHtml = "候補を選択してください：
-
-";
+            let listHtml = "候補を選択してください：\n\n";
 
             data.forEach((place, index) => {
-                listHtml += `${index + 1}: ${place.display_name}
-
-`;
+                listHtml += `${index + 1}: ${place.display_name}\n\n`;
             });
 
             const choice = prompt(listHtml);
