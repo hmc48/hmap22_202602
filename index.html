@@ -303,26 +303,50 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
 
         } else {
 
-            fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}`
-            )
-            .then(res => res.json())
-            .then(data => {
+        fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&countrycodes=jp&limit=5&accept-language=ja&q=${encodeURIComponent(input)}`
+        )
+        .then(res => res.json())
+        .then(data => {
 
-                if (!data || data.length === 0) {
-                    alert("住所が見つかりません");
-                    return;
-                }
+            if (!data || data.length === 0) {
+                alert("住所が見つかりません");
+                return;
+            }
 
-                const lat = parseFloat(data[0].lat);
-                const lng = parseFloat(data[0].lon);
+            // ▼ 候補一覧UI作成
+            let listHtml = "候補を選択してください：
 
-                map.setView([lat, lng], 16);
+";
 
-                inputMarker = L.marker([lat, lng]).addTo(map)
-                    .bindPopup(input)
-                    .openPopup();
-            })
+            data.forEach((place, index) => {
+                listHtml += `${index + 1}: ${place.display_name}
+
+`;
+            });
+
+            const choice = prompt(listHtml);
+
+            if (!choice) return;
+
+            const idx = parseInt(choice) - 1;
+
+            if (isNaN(idx) || !data[idx]) {
+                alert("選択が不正です");
+                return;
+            }
+
+            const selected = data[idx];
+
+            const lat = parseFloat(selected.lat);
+            const lng = parseFloat(selected.lon);
+
+            map.setView([lat, lng], 16);
+
+            inputMarker = L.marker([lat, lng]).addTo(map)
+                .bindPopup(selected.display_name)
+                .openPopup();
+        })
             .catch(() => {
                 alert("検索エラーが発生しました");
             });
